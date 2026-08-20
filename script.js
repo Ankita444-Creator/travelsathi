@@ -1,119 +1,184 @@
-async function generatePlan() {
-    const origin = document.getElementById('origin').value;
-    const destination = document.getElementById('destination').value;
-    const days = document.getElementById('days').value;
-    const budget = document.getElementById('budget').value;
-    const resultDiv = document.getElementById('result');
-    const loadingDiv = document.getElementById('loading');
+let currentTripData = null;
+
+async function generateTrip() {
+    const origin = document.getElementById('origin').value.trim();
+    const destination = document.getElementById('destination').value.trim();
+    const days = document.getElementById('days').value.trim();
+    const budget = document.getElementById('budget').value.trim();
 
     if (!origin || !destination || !days || !budget) {
-        alert("Please fill in all the fields!");
+        alert("Please fill in all the fields properly!");
         return;
     }
 
-    // Show loading animation
-    loadingDiv.classList.remove('hidden');
-    resultDiv.innerHTML = "";
+    document.getElementById('loading').classList.remove('hidden');
 
     const apiKey = "AQ.Ab8RN6L5hTVyohZrFP6_cos3PP-I-y2TqbaOIbsAG1nBAGQgow"; // তোর এপিআই কি এখানে বসানোই আছে
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    const prompt = `Act as an expert travel planner. Create a budget-friendly trip plan for traveling from ${origin} to ${destination} for ${days} days with a total budget of ${budget} INR. 
+    const prompt = `Act as an expert localized travel planner for India. Create an accurate, realistic trip plan from ${origin} to ${destination} for ${days} days with a total budget of ${budget} INR.
     Return ONLY valid JSON with these exact keys:
-    - transportEstimate (string)
-    - hotels (array of 2 objects with name, type, price, and contact)
-    - sightseeing (array of objects with place, cost)
-    - foodEstimate (string)`;
-
-    let tripData;
+    - destination (string)
+    - totalBudget (number)
+    - breakdown (object with keys: transportCost, hotelCost, foodCost, sightseeingCost, totalEstimatedCost - all numbers)
+    - hotels (array of 3 objects, each with: name, type, pricePerNight, contact, location)
+    - sightseeing (array of 3-4 objects, each with: place, estimatedCost, description, mapQuery)
+    - foodSpots (array of 3 objects, each with: restaurantName, specialty, avgCost, location)`;
 
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
         const data = await response.json();
+        let aiText = data.candidates[0].content.parts[0].text;
+        aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
         
-        if (data.candidates && data.candidates[0].content) {
-            let aiText = data.candidates[0].content.parts[0].text;
-            aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const jsonStart = aiText.indexOf('{');
-            const jsonEnd = aiText.lastIndexOf('}');
-            if (jsonStart !== -1 && jsonEnd !== -1) {
-                aiText = aiText.substring(jsonStart, jsonEnd + 1);
-            }
-            tripData = JSON.parse(aiText);
-        } else {
-            throw new Error("API structure error");
+        const jsonStart = aiText.indexOf('{');
+        const jsonEnd = aiText.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+            aiText = aiText.substring(jsonStart, jsonEnd + 1);
         }
 
+        currentTripData = JSON.parse(aiText);
+        document.getElementById('loading').classList.add('hidden');
+        renderDashboard();
+
     } catch (error) {
-        console.warn("API failed or blocked, switching to smart dynamic fallback data generator.", error);
-        
-        // স্মার্ট ফলব্যাক ডেটা (এপিআই কাজ না করলেও হ্যাকাথনে সাইট কখনোই আটকাবে না!)
-        tripData = {
-            transportEstimate: `Estimated train/bus fare from ${origin} to ${destination} and back will be around ₹${Math.round(budget * 0.3)} for ${days} days. Local cabs/shared jeeps will cost approx ₹1,200.`,
-            hotels: [
-                { name: `${destination} View Resort`, type: "Budget Stay", price: Math.round(budget * 0.25), contact: "+91 98765 43210" },
-                { name: `Himalayan Cozy Cottage`, type: "Standard", price: Math.round(budget * 0.35), contact: "+91 91234 56789" }
-            ],
-            sightseeing: [
-                { place: `Main Viewpoint & Sunset Point`, cost: 150 },
-                { place: `Local Heritage Monastery & Market`, cost: 100 },
-                { place: `Waterfalls & Nature Trail`, cost: 200 }
-            ],
-            foodEstimate: `Allocated roughly ₹${Math.round(budget * 0.2)} for local street food, cafes, and authentic traditional meals.`
-        };
+        console.error(error);
+        document.getElementById('loading').classList.add('hidden');
+        alert("Error connecting to AI or parsing data. Please try again!");
     }
+}
 
-    // Hide loading
-    loadingDiv.classList.add('hidden');
+// VIEW 2: Dashboard Summary
+function renderDashboard() {
+    document.getElementById('form-view').classList.add('hidden');
+    const dash = document.getElementById('dashboard-view');
+    dash.classList.remove('hidden');
 
-    // Render UI Result
-    resultDiv.innerHTML = `
-        <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
-            <h2 class="text-2xl font-bold text-indigo-700 mb-2">📍 Trip to ${destination}</h2>
-            <p class="text-gray-700"><strong>From:</strong> ${origin} | <strong>Duration:</strong> ${days} Days | <strong>Budget:</strong> ₹${budget}</p>
-        </div>
+    const b = currentTripData.breakdown;
 
-        <div class="bg-white p-5 rounded-xl shadow border">
-            <h3 class="text-lg font-bold text-gray-800 mb-2">🚆 Transportation Estimate</h3>
-            <p class="text-gray-600">${tripData.transportEstimate}</p>
-        </div>
+    dash.innerHTML = `
+        <div class="bg-white shadow-xl rounded-2xl p-6 border border-indigo-100">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-indigo-700">📍 Trip to ${currentTripData.destination}</h2>
+                    <p class="text-gray-500 text-sm">Overview & Cost Estimation</p>
+                </div>
+                <button onclick="resetApp()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-200">🔄 New Search</button>
+            </div>
 
-        <div class="bg-white p-5 rounded-xl shadow border">
-            <h3 class="text-lg font-bold text-gray-800 mb-3">🏨 Recommended Hotels (Within Budget)</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${tripData.hotels.map(h => `
-                    <div class="p-4 bg-gray-50 rounded-lg border">
-                        <h4 class="font-bold text-indigo-600">${h.name}</h4>
-                        <p class="text-sm text-gray-500">Type: ${h.type}</p>
-                        <p class="text-sm font-semibold text-green-600">Price: ₹${h.price}</p>
-                        <p class="text-sm text-gray-600">📞 Contact: ${h.contact}</p>
-                    </div>
-                `).join('')}
+            <!-- Budget Breakdown Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <p class="text-xs text-gray-500 font-semibold">HOTELS</p>
+                    <p class="text-lg font-bold text-blue-700">₹${b.hotelCost}</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <p class="text-xs text-gray-500 font-semibold">SIGHTSEEING</p>
+                    <p class="text-lg font-bold text-green-700">₹${b.sightseeingCost}</p>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                    <p class="text-xs text-gray-500 font-semibold">FOOD & DRINKS</p>
+                    <p class="text-lg font-bold text-yellow-700">₹${b.foodCost}</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                    <p class="text-xs text-gray-500 font-semibold">TOTAL ESTIMATE</p>
+                    <p class="text-lg font-bold text-purple-700">₹${b.totalEstimatedCost}</p>
+                </div>
+            </div>
+
+            <!-- Category Navigation Blocks -->
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Explore Categories (Click to View Details)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div onclick="showDetails('hotels')" class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 rounded-2xl cursor-pointer card-hover shadow-lg">
+                    <h4 class="text-xl font-bold mb-1">🏨 Recommended Hotels</h4>
+                    <p class="text-blue-100 text-sm">View verified rooms, prices & contacts</p>
+                </div>
+                <div onclick="showDetails('sightseeing')" class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-6 rounded-2xl cursor-pointer card-hover shadow-lg">
+                    <h4 class="text-xl font-bold mb-1">🏞️ Sightseeing & Spots</h4>
+                    <p class="text-emerald-100 text-sm">View attractions & Google Maps</p>
+                </div>
+                <div onclick="showDetails('food')" class="bg-gradient-to-br from-amber-500 to-orange-600 text-white p-6 rounded-2xl cursor-pointer card-hover shadow-lg">
+                    <h4 class="text-xl font-bold mb-1">🍲 Food & Restaurants</h4>
+                    <p class="text-amber-100 text-sm">View top food spots & specialties</p>
+                </div>
             </div>
         </div>
-
-        <div class="bg-white p-5 rounded-xl shadow border">
-            <h3 class="text-lg font-bold text-gray-800 mb-3">🏞️ Sightseeing & Attractions</h3>
-            <ul class="space-y-2">
-                ${tripData.sightseeing.map(s => `
-                    <li class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
-                        <span>${s.place} (Cost: ₹${s.cost})</span>
-                        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.place + ' ' + destination)}" target="_blank" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">View Map 📍</a>
-                    </li>
-                `).join('')}
-            </ul>
-        </div>
-
-        <div class="bg-white p-5 rounded-xl shadow border">
-            <h3 class="text-lg font-bold text-gray-800 mb-2">🍲 Food & Miscellaneous</h3>
-            <p class="text-gray-600">${tripData.foodEstimate}</p>
-        </div>
     `;
+}
+
+// VIEW 3: Detailed Sub-pages
+function showDetails(category) {
+    document.getElementById('dashboard-view').classList.add('hidden');
+    const detail = document.getElementById('detail-view');
+    detail.classList.remove('hidden');
+
+    let contentHTML = `<button onclick="backToDashboard()" class="mb-6 bg-gray-100 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-200">⬅ Back to Summary</button>`;
+
+    if (category === 'hotels') {
+        contentHTML += `<h2 class="text-2xl font-bold text-indigo-700 mb-4">🏨 Verified Hotel Options</h2><div class="space-y-4">`;
+        currentTripData.hotels.forEach(h => {
+            contentHTML += `
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-indigo-600">${h.name}</h3>
+                        <p class="text-sm text-gray-600">Type: ${h.type} | Location: ${h.location}</p>
+                        <p class="text-sm font-semibold text-green-600 mt-1">Price: ₹${h.pricePerNight} / night</p>
+                        <p class="text-sm text-gray-700 mt-1">📞 Contact: ${h.contact}</p>
+                    </div>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name + ' ' + currentTripData.destination)}" target="_blank" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700">View on Map 📍</a>
+                </div>`;
+        });
+        contentHTML += `</div>`;
+    } 
+    else if (category === 'sightseeing') {
+        contentHTML += `<h2 class="text-2xl font-bold text-emerald-700 mb-4">🏞️ Sightseeing & Attractions</h2><div class="space-y-4">`;
+        currentTripData.sightseeing.forEach(s => {
+            contentHTML += `
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-emerald-700">${s.place}</h3>
+                        <p class="text-sm text-gray-600 mt-1">${s.description}</p>
+                        <p class="text-sm font-semibold text-gray-700 mt-1">Entry/Travel Cost: ₹${s.estimatedCost}</p>
+                    </div>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.place + ' ' + currentTripData.destination)}" target="_blank" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700">Open Map 📍</a>
+                </div>`;
+        });
+        contentHTML += `</div>`;
+    } 
+    else if (category === 'food') {
+        contentHTML += `<h2 class="text-2xl font-bold text-amber-700 mb-4">🍲 Food & Best Restaurants</h2><div class="space-y-4">`;
+        currentTripData.foodSpots.forEach(f => {
+            contentHTML += `
+                <div class="p-5 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-amber-700">${f.restaurantName}</h3>
+                        <p class="text-sm text-gray-600">Specialty: ${f.specialty} | Location: ${f.location}</p>
+                        <p class="text-sm font-semibold text-green-600 mt-1">Avg Cost per meal: ₹${f.avgCost}</p>
+                    </div>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.restaurantName + ' ' + currentTripData.destination)}" target="_blank" class="bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-amber-700">Find on Map 📍</a>
+                </div>`;
+        });
+        contentHTML += `</div>`;
+    }
+
+    detail.innerHTML = contentHTML;
+}
+
+function backToDashboard() {
+    document.getElementById('detail-view').classList.add('hidden');
+    document.getElementById('dashboard-view').classList.remove('hidden');
+}
+
+function resetApp() {
+    document.getElementById('dashboard-view').classList.add('hidden');
+    document.getElementById('form-view').classList.remove('hidden');
+    document.getElementById('origin').value = '';
+    document.getElementById('destination').value = '';
+    document.getElementById('days').value = '';
+    document.getElementById('budget').value = '';
 }
