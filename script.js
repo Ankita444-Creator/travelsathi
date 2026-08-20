@@ -15,16 +15,15 @@ async function generatePlan() {
     loadingDiv.classList.remove('hidden');
     resultDiv.innerHTML = "";
 
-    // Gemini API integration prompt
     const prompt = `Act as an expert travel planner. Create a budget-friendly trip plan for traveling from ${origin} to ${destination} for ${days} days with a total budget of ${budget} INR. 
-    Provide the response strictly in JSON format with the following keys:
-    - transportEstimate (string describing travel mode and estimated cost)
-    - hotels (array of 2 objects with name, type, price, and contact number)
-    - sightseeing (array of objects with place name, cost, and a Google Maps search query link)
-    - foodEstimate (string with food cost breakdown)`;
+    You MUST return ONLY valid JSON (no markdown, no backticks) with the following exact keys:
+    - transportEstimate (string)
+    - hotels (array of 2 objects, each having name, type, price, and contact)
+    - sightseeing (array of objects, each having place, cost)
+    - foodEstimate (string)`;
 
-    const apiKey = "AQ.Ab8RN6L5hTVyohZrFP6_cos3PP-I-y2TqbaOIbsAG1nBAGQgow"; 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiKey = "AQ.Ab8RN6L5hTVyohZrFP6_cos3PP-I-y2TqbaOIbsAG1nBAGQgow"; // তোর এপিআই কি এখানে বসানোই আছে
+    const apiUrl = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){apiKey}`;
 
     try {
         const response = await fetch(apiUrl, {
@@ -36,18 +35,31 @@ async function generatePlan() {
         });
 
         const data = await response.json();
+        
+        if (!data.candidates || !data.candidates[0].content) {
+            throw new Error("Invalid API response structure");
+        }
+
         let aiText = data.candidates[0].content.parts[0].text;
         
-        // Clean up JSON response from markdown tags if Gemini adds them
+        // Clean up markdown code blocks safely
         aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        // Find JSON substring if extra text exists
+        const jsonStart = aiText.indexOf('{');
+        const jsonEnd = aiText.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+            aiText = aiText.substring(jsonStart, jsonEnd + 1);
+        }
+
         const tripData = JSON.parse(aiText);
 
         // Hide loading
         loadingDiv.classList.add('hidden');
 
-        // Render HTML Output dynamically
+        // Render HTML Output
         resultDiv.innerHTML = `
-            <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200 card-hover">
+            <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
                 <h2 class="text-2xl font-bold text-indigo-700 mb-2">📍 Trip to ${destination}</h2>
                 <p class="text-gray-700"><strong>From:</strong> ${origin} | <strong>Duration:</strong> ${days} Days | <strong>Budget:</strong> ₹${budget}</p>
             </div>
@@ -77,7 +89,7 @@ async function generatePlan() {
                     ${tripData.sightseeing.map(s => `
                         <li class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
                             <span>${s.place} (Cost: ₹${s.cost})</span>
-                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.place + ' ' + destination)}" target="_blank" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">View Map 📍</a>
+                            <a href="[https://www.google.com/maps/search/?api=1&query=$](https://www.google.com/maps/search/?api=1&query=$){encodeURIComponent(s.place + ' ' + destination)}" target="_blank" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">View Map 📍</a>
                         </li>
                     `).join('')}
                 </ul>
@@ -92,6 +104,6 @@ async function generatePlan() {
     } catch (error) {
         loadingDiv.classList.add('hidden');
         console.error(error);
-        alert("Something went wrong or AI response format error. Please try again!");
+        alert("Error parsing AI response. Please check console or try clicking generate again!");
     }
 }
