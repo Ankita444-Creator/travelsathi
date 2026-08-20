@@ -13,17 +13,31 @@ async function generateTrip() {
 
     document.getElementById('loading').classList.remove('hidden');
 
-    const apiKey = "AQ.Ab8RN6L5hTVyohZrFP6_cos3PP-I-y2TqbaOIbsAG1nBAGQgow"; // ⚠️ তোর এপিআই কি এখানে বসাবি (না বসালে নিচের ফলব্যাক ডেটা কাজ করবে)
+    const apiKey = "AQ.Ab8RN6L5hTVyohZrFP6_cos3PP-I-y2TqbaOIbsAG1nBAGQgow"; // তোর এপিআই কি এখানে বসাবি
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    const prompt = `Act as an expert localized travel planner for India. Create an accurate, realistic trip plan from ${origin} to ${destination} for ${days} days with a total budget of ${budget} INR.
-    Return ONLY valid JSON with these exact keys:
-    - destination (string)
-    - totalBudget (number)
-    - breakdown (object with keys: transportCost, hotelCost, foodCost, sightseeingCost, totalEstimatedCost - all numbers)
-    - hotels (array of 3 objects, each with: name, type, pricePerNight, contact, location)
-    - sightseeing (array of 3 objects, each with: place, estimatedCost, description, mapQuery)
-    - foodSpots (array of 3 objects, each with: restaurantName, specialty, avgCost, location)`;
+    const prompt = `You are a professional travel planner. Plan a trip from ${origin} to ${destination} for ${days} days with a total budget of ${budget} INR.
+    You MUST return ONLY a raw JSON object (no markdown formatting, no backticks, no extra text) with the following exact structure:
+    {
+      "destination": "${destination}",
+      "totalBudget": ${Number(budget)},
+      "breakdown": {
+        "transportCost": <number>,
+        "hotelCost": <number>,
+        "foodCost": <number>,
+        "sightseeingCost": <number>,
+        "totalEstimatedCost": <number>
+      },
+      "hotels": [
+        {"name": "Hotel Name", "type": "AC Room", "pricePerNight": <number>, "contact": "+91 XXXXX XXXXX", "location": "Location details"}
+      ],
+      "sightseeing": [
+        {"place": "Place Name", "estimatedCost": <number>, "description": "Short description", "mapQuery": "Place Name"}
+      ],
+      "foodSpots": [
+        {"restaurantName": "Restaurant Name", "specialty": "Specialty dish", "avgCost": <number>, "location": "Location"}
+      ]
+    }`;
 
     try {
         const response = await fetch(apiUrl, {
@@ -35,56 +49,29 @@ async function generateTrip() {
         const data = await response.json();
         
         if (!data.candidates || !data.candidates[0].content) {
-            throw new Error("API response error");
+            throw new Error("Invalid AI response structure");
         }
 
         let aiText = data.candidates[0].content.parts[0].text;
+        
+        // Clean up markdown code blocks if AI returns them anyway
         aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
         
         const jsonStart = aiText.indexOf('{');
-        const jsonEnd = aiText.lastIndexOf('جات'); // handled safely
-        const lastBrace = aiText.lastIndexOf('}');
-        if (jsonStart !== -1 && lastBrace !== -1) {
-            aiText = aiText.substring(jsonStart, lastBrace + 1);
+        const jsonEnd = aiText.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+            aiText = aiText.substring(jsonStart, jsonEnd + 1);
         }
 
         currentTripData = JSON.parse(aiText);
+        document.getElementById('loading').classList.add('hidden');
+        renderDashboard();
 
     } catch (error) {
-        console.warn("AI API failed or Key missing. Using Smart Fallback Data generator.", error);
-        
-        // ১০০% নিখুঁত ফলব্যাক ডেটা (এপিআই কাজ না করলেও সাইট ফাটিয়ে কাজ করবে!)
-        const bNum = Number(budget);
-        currentTripData = {
-            destination: destination,
-            totalBudget: bNum,
-            breakdown: {
-                transportCost: Math.round(bNum * 0.3),
-                hotelCost: Math.round(bNum * 0.35),
-                foodCost: Math.round(bNum * 0.2),
-                sightseeingCost: Math.round(bNum * 0.15),
-                totalEstimatedCost: bNum
-            },
-            hotels: [
-                { name: `${destination} Grand Residency`, type: "Standard AC Room", pricePerNight: Math.round((bNum * 0.35) / days), contact: "+91 98320 12345", location: `Near Main City Center, ${destination}` },
-                { name: `Hotel ${destination} View Inn`, type: "Budget Deluxe", pricePerNight: Math.round((bNum * 0.25) / days), contact: "+91 97345 67890", location: `Station Road, ${destination}` },
-                { name: `Cozy Home Stay ${destination}`, type: "Traditional Cottage", pricePerNight: Math.round((bNum * 0.3) / days), contact: "+91 91234 98765", location: `Scenic Valley Area, ${destination}` }
-            ],
-            sightseeing: [
-                { place: `Main Heritage Point & Park`, estimatedCost: 100, description: `Popular local attraction with scenic beauty and historical importance.`, mapQuery: `${destination} Heritage Park` },
-                { place: `Central Viewpoint & Sunset Point`, estimatedCost: 150, description: `Best place to view sunset and panoramic views of ${destination}.`, mapQuery: `${destination} Sunset Point` },
-                { place: `Local Culture & Craft Market`, estimatedCost: 50, description: `Explore traditional items, local food items, and handcrafts.`, mapQuery: `${destination} Local Market` }
-            ],
-            foodSpots: [
-                { restaurantName: `The Royal Kitchen`, specialty: `Authentic Thali & Local Bengali Cuisine`, avgCost: 250, location: `Main Market, ${destination}` },
-                { restaurantName: `Spice Garden Restaurant`, specialty: `Multi-cuisine, Fast Food & Biryani`, avgCost: 300, location: `Near Station, ${destination}` },
-                { restaurantName: `Desi Café & Snacks`, specialty: `Evening Snacks, Tea & Local Sweets`, avgCost: 120, location: `City Center, ${destination}` }
-            ]
-        };
+        console.error("API Error:", error);
+        document.getElementById('loading').classList.add('hidden');
+        alert("API Error! Please check your API key or internet connection, and try again.");
     }
-
-    document.getElementById('loading').classList.add('hidden');
-    renderDashboard();
 }
 
 // VIEW 2: Dashboard Summary
