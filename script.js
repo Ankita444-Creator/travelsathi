@@ -13,7 +13,7 @@ async function generateTrip() {
 
     document.getElementById('loading').classList.remove('hidden');
 
-    const apiKey = "AQ.Ab8RN6L5hTVyohZrFP6_cos3PP-I-y2TqbaOIbsAG1nBAGQgow"; 
+    const apiKey = ""; 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const prompt = `Act as an expert travel planner. Create a trip plan from ${origin} to ${destination} for ${days} days with a total budget of ${budget} INR. Return ONLY valid JSON with keys: destination, totalBudget, breakdown(transportCost, hotelCost, foodCost, sightseeingCost, totalEstimatedCost), hotels(array of 3: name, type, pricePerNight, contact, location), sightseeing(array of 3: place, estimatedCost, description, mapQuery), foodSpots(array of 3: restaurantName, specialty, avgCost, location).`;
