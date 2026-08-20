@@ -23,7 +23,7 @@ async function generatePlan() {
     - sightseeing (array of objects with place name, cost, and a Google Maps search query link)
     - foodEstimate (string with food cost breakdown)`;
 
-    const apiKey = "YOUR_GEMINI_API_KEY"; // ⚠️ এখানে তোর জেমিনি এপিআই কি (API Key) বসিয়ে দিবি
+    const apiKey = "AQ.Ab8RN6L5hTVyohZrFP6_cos3PP-I-y2TqbaOIbsAG1nBAGQgow"; 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     try {
