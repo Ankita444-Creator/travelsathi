@@ -1,8 +1,7 @@
-/* Custom Styles if needed */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 .card-hover:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
     transition: all 0.3s ease;
 }
