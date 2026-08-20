@@ -3,53 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Budget Travel Planner</title>
-    <!-- Tailwind CSS for Modern UI -->
+    <title>AI Smart Travel & Budget Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen p-4 md:p-8">
 
-    <div class="max-w-3xl mx-auto bg-white shadow-2xl rounded-2xl p-8">
-        <h1 class="text-3xl font-extrabold text-indigo-600 text-center mb-2">🌍 AI Travel & Budget Planner</h1>
-        <p class="text-gray-500 text-center mb-6">Plan your dream trip within your budget instantly!</p>
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-700">🌍 Smart AI Travel Companion</h1>
+            <p class="text-gray-600 mt-2">Accurate Budget Breakdown, Verified Hotels, Sightseeing & Food Spots</p>
+        </div>
 
-        <!-- Travel Input Form -->
-        <div class="space-y-4">
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1">Starting From (Current Location):</label>
-                <input type="text" id="origin" placeholder="e.g., Kolkata" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none">
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1">Where do you want to go? (Destination):</label>
-                <input type="text" id="destination" placeholder="e.g., Darjeeling" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
+        <!-- VIEW 1: Input Form -->
+        <div id="form-view" class="bg-white shadow-2xl rounded-2xl p-6 md:p-8 border border-indigo-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                    <label class="block text-gray-700 font-semibold mb-1">Duration (Days):</label>
-                    <input type="number" id="days" placeholder="e.g., 3" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none">
+                    <label class="block text-gray-700 font-semibold mb-2">From (Current Location):</label>
+                    <input type="text" id="origin" placeholder="e.g., Kolkata" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-gray-700 font-semibold mb-1">Total Budget (INR):</label>
-                    <input type="number" id="budget" placeholder="e.g., 8000" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none">
+                    <label class="block text-gray-700 font-semibold mb-2">Destination:</label>
+                    <input type="text" id="destination" placeholder="e.g., Darjeeling / Karimpur" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Duration (Days):</label>
+                    <input type="number" id="days" placeholder="e.g., 3" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Total Budget (INR):</label>
+                    <input type="number" id="budget" placeholder="e.g., 8000" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
             </div>
 
-            <button onclick="generatePlan()" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-lg">
-                Generate Smart Trip Plan 🚀
+            <button onclick="generateTrip()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-xl hover:opacity-90 transition shadow-lg text-lg">
+                Generate Accurate Trip Plan 🚀
             </button>
+
+            <!-- Loading Spinner -->
+            <div id="loading" class="hidden text-center mt-8">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 mx-auto"></div>
+                <p class="text-gray-600 mt-3 font-medium">AI is analyzing exact routes, hotels & costs...</p>
+            </div>
         </div>
 
-        <!-- Loading Spinner -->
-        <div id="loading" class="hidden text-center mt-6">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div>
-            <p class="text-gray-600 mt-2">AI is crafting your budget-friendly trip plan...</p>
-        </div>
+        <!-- VIEW 2: Dashboard Summary (Initially Hidden) -->
+        <div id="dashboard-view" class="hidden space-y-6"></div>
 
-        <!-- Output Result Section -->
-        <div id="result" class="mt-8 space-y-6"></div>
+        <!-- VIEW 3: Detail Pages (Hotels / Sightseeing / Food) (Initially Hidden) -->
+        <div id="detail-view" class="hidden bg-white shadow-2xl rounded-2xl p-6 md:p-8 border border-indigo-100"></div>
+
     </div>
 
     <script src="script.js"></script>
